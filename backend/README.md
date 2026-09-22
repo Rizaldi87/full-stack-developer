@@ -1,98 +1,189 @@
-<p align="center">
-  <a href="http://nestjs.com/" target="blank"><img src="https://nestjs.com/img/logo-small.svg" width="120" alt="Nest Logo" /></a>
-</p>
+# Backend — IndoKerja REST API
 
-[circleci-image]: https://img.shields.io/circleci/build/github/nestjs/nest/master?token=abc123def456
-[circleci-url]: https://circleci.com/gh/nestjs/nest
+REST API untuk platform IndoKerja, dibangun dengan **NestJS 11 + Prisma 7 + PostgreSQL**. Menangani autentikasi (JWT access + rotating refresh token), profil pengguna & perusahaan, lowongan pekerjaan, dan alur lamaran (real job-application workflow dengan transisi status terkontrol).
 
-  <p align="center">A progressive <a href="http://nodejs.org" target="_blank">Node.js</a> framework for building efficient and scalable server-side applications.</p>
-    <p align="center">
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/v/@nestjs/core.svg" alt="NPM Version" /></a>
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/l/@nestjs/core.svg" alt="Package License" /></a>
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/dm/@nestjs/common.svg" alt="NPM Downloads" /></a>
-<a href="https://circleci.com/gh/nestjs/nest" target="_blank"><img src="https://img.shields.io/circleci/build/github/nestjs/nest/master" alt="CircleCI" /></a>
-<a href="https://discord.gg/G7Qnnhy" target="_blank"><img src="https://img.shields.io/badge/discord-online-brightgreen.svg" alt="Discord"/></a>
-<a href="https://opencollective.com/nest#backer" target="_blank"><img src="https://opencollective.com/nest/backers/badge.svg" alt="Backers on Open Collective" /></a>
-<a href="https://opencollective.com/nest#sponsor" target="_blank"><img src="https://opencollective.com/nest/sponsors/badge.svg" alt="Sponsors on Open Collective" /></a>
-  <a href="https://paypal.me/kamilmysliwiec" target="_blank"><img src="https://img.shields.io/badge/Donate-PayPal-ff3f59.svg" alt="Donate us"/></a>
-    <a href="https://opencollective.com/nest#sponsor"  target="_blank"><img src="https://img.shields.io/badge/Support%20us-Open%20Collective-41B883.svg" alt="Support us"></a>
-  <a href="https://twitter.com/nestframework" target="_blank"><img src="https://img.shields.io/twitter/follow/nestframework.svg?style=social&label=Follow" alt="Follow us on Twitter"></a>
-</p>
-  <!--[![Backers on Open Collective](https://opencollective.com/nest/backers/badge.svg)](https://opencollective.com/nest#backer)
-  [![Sponsors on Open Collective](https://opencollective.com/nest/sponsors/badge.svg)](https://opencollective.com/nest#sponsor)-->
+---
 
-## Description
+## Teknologi & Versi
 
-[Nest](https://github.com/nestjs/nest) framework TypeScript starter repository.
+| Komponen                                         | Versi |
+| ------------------------------------------------ | ----- |
+| NestJS (platform-express)                        | ^11   |
+| Prisma (generator `prisma-client`, adapter `pg`) | ^7    |
+| PostgreSQL                                       | 13+   |
+| JWT (passport-jwt, manual refresh)               | ^12   |
+| bcrypt                                           | ^6    |
+| class-validator / class-transformer              | ^0    |
+| Jest (unit) + Supertest (e2e)                    | ^30   |
 
-## Project setup
+> Prisma 7 dipakai dengan **driver adapter `pg`** — `DATABASE_URL` dibaca di `PrismaService` (bukan dari `env()` di `schema.prisma`), sehingga schema tidak bergantung pada url statis.
 
-```bash
-$ npm install
+---
+
+## Struktur Folder
+
+```
+backend/
+├── prisma/
+│   ├── schema.prisma      # model, enum (Role, JobStatus, ApplicationStatus, dll.)
+│   └── migrations/        # riwayat migrasi Prisma
+├── generated/prisma/      # Prisma Client (hasilkan via `npx prisma generate`)
+├── src/
+│   ├── main.ts            # bootstrap, global ValidationPipe, CORS, dengar di 0.0.0.0
+│   ├── app.module.ts      # modul root; konfigurasi ConfigModule global
+│   ├── prisma/            # PrismaService
+│   ├── auth/              # register, login, me, refresh, guards (JwtAuthGuard, RolesGuard)
+│   ├── users/             # CRUD pengguna
+│   ├── company/           # profil perusahaan (create/me/update)
+│   ├── jobs/              # lowongan (browse/list:public, detail, create, update)
+│   ├── jobs/company-jobs/ # daftar lowongan milik perusahaan
+│   └── applications/      # lamaran (apply, list milik user/pelamar, update status, riwayat)
+└── test/                  # e2e test (*.e2e-spec.ts)
 ```
 
-## Compile and run the project
+---
+
+## Prasyarat
+
+- **Node.js 20+**
+- **npm**
+- **PostgreSQL** berjalan lokal (buat database kosong, mis: `indokerja`)
+
+> Kalau belum punya PostgreSQL lokal, Prisma punya opsi `npx create-db` (membuat Postgres gratis secara otomatis) — hasilnya tinggal diisi ke `DATABASE_URL`.
+
+---
+
+## Setup Lokal
 
 ```bash
-# development
-$ npm run start
+npm install
 
-# watch mode
-$ npm run start:dev
+# 1) Konfigurasi env — salin template lalu isi
+cp .env.example .env
 
-# production mode
-$ npm run start:prod
+# 2) Buat database + jalankan migrasi
+npx prisma migrate dev          # membuat tabel sesuai schema
+
+# sidebar: kalau schema.prisma berubah dan butuh regenerate client:
+npx prisma generate
+
+# 3) Jalankan (mode develop, hot-reload)
+npm run start:dev               # → http://localhost:3000
 ```
 
-## Run tests
+Dokumentasi API interaktif tersedia selama app hidup:
+**http://localhost:3000/api** (Swagger) → seluruh endpoint bisa dicoba langsung dari browser.
+
+---
+
+## Variabel Lingkungan
+
+Semua wajib diisi di `.env` (template: `.env.example`):
+
+| Variabel                 | Contoh                                            | Keterangan                                                  |
+| ------------------------ | ------------------------------------------------- | ----------------------------------------------------------- |
+| `DATABASE_URL`           | `postgresql://user:pass@localhost:5432/indokerja` | Koneksi PostgreSQL (via adapter `pg`)                       |
+| `JWT_SECRET`             | string random panjang                             | Secret access token                                         |
+| `JWT_EXPIRES_IN`         | `15m`                                             | Masa berlaku access token (format `ms`)                     |
+| `JWT_REFRESH_SECRET`     | string random panjang                             | Secret refresh token                                        |
+| `JWT_REFRESH_EXPIRES_IN` | `30d`                                             | Masa berlaku refresh token (format `ms`)                    |
+| `FRONTEND_URL`           | `http://localhost:5173`                           | Domain yang diizinkan CORS (produksi = URL Vercel frontend) |
+| `PORT`                   | `3000`                                            | Port; platform deploy meng-overwrite otomatis               |
+
+> Gunakan secret yang berbeda & panjang untuk `JWT_SECRET` dan `JWT_REFRESH_SECRET` (jangan sama).
+
+---
+
+## Skrip
+
+| Perintah                    | Fungsi                                     |
+| --------------------------- | ------------------------------------------ |
+| `npm run start:dev`         | Jalankan dengan hot-reload (dev)           |
+| `npm run build`             | `prisma generate` + `nest build` → `dist/` |
+| `npm run start:prod`        | `node dist/main` (produksi)                |
+| `npm run lint`              | ESLint + Prettier fix                      |
+| `npm test`                  | Unit test (Jest)                           |
+| `npm run test:e2e`          | Test end-to-end                            |
+| `npx prisma migrate dev`    | Migrasi dev (buat/ubah tabel)              |
+| `npx prisma migrate deploy` | Terapkan migrasi (produksi/CI)             |
+
+---
+
+## Endpoint API
+
+Semua di bawah root (default `http://localhost:3000`). Header `Authorization: Bearer <accessToken>` dibutuhkan kecuali dinyatakan **publik**.
+
+### Auth — `/auth`
+
+| Metode | Rute             | Akses  | Deskripsi                                                     |
+| ------ | ---------------- | ------ | ------------------------------------------------------------- |
+| POST   | `/auth/register` | Publik | Registrasi `JOB_SEEKER` atau `COMPANY` (bcrypt hash password) |
+| POST   | `/auth/login`    | Publik | Login → `{ accessToken, refreshToken, user }`                 |
+| GET    | `/auth/me`       | Auth   | Profil user yang sedang login                                 |
+| POST   | `/auth/refresh`  | Auth   | Rotasi refresh token → pasangan token baru                    |
+
+### Users — `/users`
+
+| Metode | Rute         | Akses | Deskripsi   |
+| ------ | ------------ | ----- | ----------- |
+| POST   | `/users`     | Admin | Buat user   |
+| GET    | `/users`     | Admin | Daftar user |
+| GET    | `/users/:id` | Admin | Detail user |
+| PATCH  | `/users/:id` | Admin | Ubah user   |
+| DELETE | `/users/:id` | Admin | Hapus user  |
+
+### Company — `/company`
+
+| Metode | Rute          | Akses   | Deskripsi                    |
+| ------ | ------------- | ------- | ---------------------------- |
+| POST   | `/company`    | COMPANY | Buat profil perusahaan       |
+| GET    | `/company/me` | COMPANY | Profil perusahaan milik akun |
+| PATCH  | `/company/me` | COMPANY | Update profil perusahaan     |
+
+### Jobs — `/jobs`
+
+| Metode | Rute            | Akses   | Deskripsi                                                         |
+| ------ | --------------- | ------- | ----------------------------------------------------------------- |
+| GET    | `/jobs`         | Publik  | Daftar lowongan (filter: q/type/location/salary mode, pagination) |
+| GET    | `/jobs/:id`     | Publik  | Detail lowongan                                                   |
+| POST   | `/jobs`         | COMPANY | Buat lowongan                                                     |
+| PATCH  | `/jobs/:id`     | COMPANY | Update status/detail lowongan (closed, dll)                       |
+| GET    | `/company/jobs` | COMPANY | Daftar lowongan milik perusahaan                                  |
+
+### Applications — `/applications`
+
+| Metode | Rute                        | Akses      | Deskripsi                                      |
+| ------ | --------------------------- | ---------- | ---------------------------------------------- |
+| POST   | `/jobs/:id/applications`    | JOB_SEEKER | Lamar lowongan (cek duplikasi + lowongan OPEN) |
+| GET    | `/jobs/:id/applications`    | COMPANY    | Daftar pelamar lowongan tertentu               |
+| GET    | `/applications/me`          | JOB_SEEKER | Daftar lamaran user yang login                 |
+| PATCH  | `/applications/:id/status`  | COMPANY    | Ubah status lamaran (sesuai aturan transisi)   |
+| GET    | `/applications/:id/history` | COMPANY    | Riwayat perubahan status lamaran               |
+
+---
+
+## Alur Lamaran & Transisi Status
+
+Status lamaran: `APPLIED → REVIEWING → SHORTLISTED → (ACCEPTED | REJECTED)`.
+
+Perpindahan **hanya boleh maju** dan divalidasi di backend:
+
+- `APPLIED` → `REVIEWING` | `REJECTED`
+- `REVIEWING` → `SHORTLISTED` | `REJECTED`
+- `SHORTLISTED` → `ACCEPTED` | `REJECTED`
+- `REJECTED` & `ACCEPTED` → terminal (tidak bisa diubah lagi)
+
+Mengubah status **selalu menghapus session/review** yang sedang berjalan untuk lamaran tersebut, agar tidak ada review ganda, dan memunculkan `ApplicationHistoryRecord` baru.
+
+Lihat detail aturan lengkap di **PRD-Job-Application-Management.md** (root repo `indokerja.id/`).
+
+---
+
+## Menjalankan Test
 
 ```bash
-# unit tests
-$ npm run test
-
-# e2e tests
-$ npm run test:e2e
-
-# test coverage
-$ npm run test:cov
+npm test             # unit test
+npm run test:e2e     # end-to-end (butuh DATABASE_URL + DB yang sudah migrate)
 ```
 
-## Deployment
-
-When you're ready to deploy your NestJS application to production, there are some key steps you can take to ensure it runs as efficiently as possible. Check out the [deployment documentation](https://docs.nestjs.com/deployment) for more information.
-
-If you are looking for a cloud-based platform to deploy your NestJS application, check out [Mau](https://mau.nestjs.com), our official platform for deploying NestJS applications on AWS. Mau makes deployment straightforward and fast, requiring just a few simple steps:
-
-```bash
-$ npm install -g @nestjs/mau
-$ mau deploy
-```
-
-With Mau, you can deploy your application in just a few clicks, allowing you to focus on building features rather than managing infrastructure.
-
-## Resources
-
-Check out a few resources that may come in handy when working with NestJS:
-
-- Visit the [NestJS Documentation](https://docs.nestjs.com) to learn more about the framework.
-- For questions and support, please visit our [Discord channel](https://discord.gg/G7Qnnhy).
-- To dive deeper and get more hands-on experience, check out our official video [courses](https://courses.nestjs.com/).
-- Deploy your application to AWS with the help of [NestJS Mau](https://mau.nestjs.com) in just a few clicks.
-- Visualize your application graph and interact with the NestJS application in real-time using [NestJS Devtools](https://devtools.nestjs.com).
-- Need help with your project (part-time to full-time)? Check out our official [enterprise support](https://enterprise.nestjs.com).
-- To stay in the loop and get updates, follow us on [X](https://x.com/nestframework) and [LinkedIn](https://linkedin.com/company/nestjs).
-- Looking for a job, or have a job to offer? Check out our official [Jobs board](https://jobs.nestjs.com).
-
-## Support
-
-Nest is an MIT-licensed open source project. It can grow thanks to the sponsors and support by the amazing backers. If you'd like to join them, please [read more here](https://docs.nestjs.com/support).
-
-## Stay in touch
-
-- Author - [Kamil Myśliwiec](https://twitter.com/kammysliwiec)
-- Website - [https://nestjs.com](https://nestjs.com/)
-- Twitter - [@nestframework](https://twitter.com/nestframework)
-
-## License
-
-Nest is [MIT licensed](https://github.com/nestjs/nest/blob/master/LICENSE).
+---
