@@ -175,8 +175,6 @@ Perpindahan **hanya boleh maju** dan divalidasi di backend:
 
 Mengubah status **selalu menghapus session/review** yang sedang berjalan untuk lamaran tersebut, agar tidak ada review ganda, dan memunculkan `ApplicationHistoryRecord` baru.
 
-Lihat detail aturan lengkap di **PRD-Job-Application-Management.md** (root repo `indokerja.id/`).
-
 ---
 
 ## Menjalankan Test

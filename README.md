@@ -25,7 +25,7 @@ full-stack-developer/
 | Form     | react-hook-form + Zod                                    |
 | Infra    | **Railway** (backend + Postgres) + **Vercel** (frontend) |
 
-> **Catatan deploy:** soal PDF menyebut `*.herokuapp.com`, tetapi Heroku mewajibkan input kartu kredit untuk membuat app baru, sehingga deploy dialihkan ke **Railway + Vercel** (tanpa kartu kredit, link publik tetap bisa dibuka untuk penilaian).
+> **Catatan deploy:** syarat deployment menyebut `*.herokuapp.com`, tetapi Heroku mewajibkan input kartu kredit untuk membuat app baru, sehingga deploy dialihkan ke **Railway + Vercel** (tanpa kartu kredit, link publik tetap bisa dibuka untuk penilaian).
 
 ---
 
