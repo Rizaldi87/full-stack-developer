@@ -10,6 +10,7 @@ import type { ApplicationStatus, JobApplicant } from "../../types";
 import { applicationStatusColor, getNextStatuses, statusLabel } from "../../utils/format";
 import { Badge } from "../../components/ui/Badge";
 import { Button } from "../../components/ui/Button";
+import HistoryTimeline from "../../components/application/HistoryTimeline";
 
 export default function ApplicantsPage() {
   const { id } = useParams();
@@ -28,6 +29,7 @@ export default function ApplicantsPage() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["applicants", id, page] });
       queryClient.invalidateQueries({ queryKey: ["company-jobs"] });
+      queryClient.invalidateQueries({ queryKey: ["application-history"] });
     },
     onError: (err) => setErrorMsg(getErrorMessage(err, "Gagal ubah status")),
   });
@@ -82,6 +84,7 @@ function ApplicantCard({ applicant, onStatus, busy }: { applicant: JobApplicant;
           ))}
         </div>
       )}
+      <HistoryTimeline applicationId={applicant.id} />
     </div>
   );
 }

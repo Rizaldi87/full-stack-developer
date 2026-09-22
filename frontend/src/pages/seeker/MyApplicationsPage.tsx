@@ -11,6 +11,7 @@ import { Select } from "../../components/ui/Select";
 import { Spinner } from "../../components/ui/Spinner";
 import { EmptyState } from "../../components/ui/EmptyState";
 import { Pagination } from "../../components/ui/Pagination";
+import HistoryTimeline from "../../components/application/HistoryTimeline";
 
 const statusOptions: Array<{ value: "" | ApplicationStatus; label: string }> = [
   { value: "", label: "Semua status" },
@@ -57,12 +58,14 @@ export default function MyApplicationsPage() {
       ) : !data || data.data.length === 0 ? (
         <EmptyState message="Belum ada lamaran. Lihat lowongan di menu Cari Kerja." />
       ) : (
-        <div className="mt-6 space-y-3">
+        <div className="mt-6 space-y-4">
           {data.data.map((app) => (
-            <Link key={app.id} to={`/jobs/${app.job.id}`} className="block rounded-lg border bg-white p-4 shadow-sm transition hover:shadow-md">
+            <div key={app.id} className="rounded-lg border bg-white p-4 shadow-sm">
               <div className="flex items-start justify-between gap-3">
                 <div>
-                  <h2 className="text-base font-semibold text-gray-900">{app.job.title}</h2>
+                  <Link to={`/jobs/${app.job.id}`} className="text-base font-semibold text-gray-900 hover:text-emerald-600">
+                    {app.job.title}
+                  </Link>
                   <p className="mt-0.5 text-sm text-gray-600">
                     {app.job.company.name} · {app.job.location}
                   </p>
@@ -70,7 +73,8 @@ export default function MyApplicationsPage() {
                 <Badge color={applicationStatusColor(app.status)}>{app.status}</Badge>
               </div>
               <p className="mt-2 text-xs text-gray-400">Dilamar {formatDate(app.createdAt)}</p>
-            </Link>
+              <HistoryTimeline applicationId={app.id} />
+            </div>
           ))}
         </div>
       )}
